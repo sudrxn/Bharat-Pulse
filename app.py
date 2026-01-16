@@ -3,8 +3,24 @@ import pandas as pd
 import joblib
 from datetime import datetime
 import numpy as np
-from data.state_district_map import get_state_district_map
-STATE_DISTRICT_MAP = get_state_district_map("data/Agriculture_price_dataset.csv")
+@st.cache_data
+def build_state_district_map(le_state, le_district):
+    """
+    Fallback mapping when raw CSV is not available.
+    Groups all districts under each state.
+    (Safe for deployment, UI-level filtering only)
+    """
+    state_district_map = {}
+
+    states = le_state.classes_
+    districts = le_district.classes_
+
+    for state in states:
+        state_district_map[state] = list(districts)
+
+    return state_district_map
+
+
 
 # --- 1. PAGE CONFIGURATION ---
 st.set_page_config(page_title="Bharat-Pulse AI", page_icon="🇮🇳", layout="wide")
@@ -28,6 +44,8 @@ def load_assets():
 
 try:
     model, le_state, le_district, le_commodity = load_assets()
+    STATE_DISTRICT_MAP = build_state_district_map(le_state, le_district)
+
 except Exception as e:
     st.error("❌ Models not found. Please run train_model.py first!")
     st.stop()
